@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LinkVault — Smart Link Organizer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- HEADER -->
+  <header>
+    <div style="display:flex;align-items:center;gap:20px">
+      <button class="btn" onclick="toggleSidebar()" style="padding:8px 10px;">☰</button>
+      <div class="logo">Link<span>Vault</span></div>
+    </div>
+    <div class="header-actions">
+      <div class="api-status"><div class="status-dot"></div> AI Active</div>
+      <button class="btn" onclick="toggleTheme()">🌙 Theme</button>
+      <button class="btn" onclick="openSettings()">⚙ Settings</button>
+      <button class="btn btn-primary" onclick="openAddModal()">+ Add Link</button>
+    </div>
+  </header>
+
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Platforms</div>
+        <div class="filter-chip active" onclick="setFilter('all')" id="f-all">
+          <span class="chip-icon">🌐</span> All Links
+          <span class="chip-count" id="count-all">0</span>
+        </div>
+        <div class="filter-chip" onclick="setFilter('youtube')" id="f-youtube">
+          <span class="chip-icon">▶</span> YouTube
+          <span class="chip-count" id="count-youtube">0</span>
+        </div>
+        <div class="filter-chip" onclick="setFilter('instagram')" id="f-instagram">
+          <span class="chip-icon">📷</span> Instagram
+          <span class="chip-count" id="count-instagram">0</span>
+        </div>
+        <div class="filter-chip" onclick="setFilter('twitter')" id="f-twitter">
+          <span class="chip-icon">𝕏</span> Twitter/X
+          <span class="chip-count" id="count-twitter">0</span>
+        </div>
+        <div class="filter-chip" onclick="setFilter('linkedin')" id="f-linkedin">
+          <span class="chip-icon">💼</span> LinkedIn
+          <span class="chip-count" id="count-linkedin">0</span>
+        </div>
+        <div class="filter-chip" onclick="setFilter('facebook')" id="f-facebook">
+          <span class="chip-icon">👥</span> Facebook
+          <span class="chip-count" id="count-facebook">0</span>
+        </div>
+        <div class="filter-chip" onclick="setFilter('threads')" id="f-threads">
+          <span class="chip-icon">🧵</span> Threads
+          <span class="chip-count" id="count-threads">0</span>
+        </div>
+        <div class="filter-chip" onclick="setFilter('website')" id="f-website">
+          <span class="chip-icon">🔗</span> Websites
+          <span class="chip-count" id="count-website">0</span>
+        </div>
+        <div class="filter-chip" onclick="setFilter('document')" id="f-document">
+          <span class="chip-icon">📄</span> Documents
+          <span class="chip-count" id="count-document">0</span>
+        </div>
+        <div class="filter-chip" onclick="setFilter('profile')" id="f-profile">
+          <span class="chip-icon">👤</span> Profiles
+          <span class="chip-count" id="count-profile">0</span>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">Content Clusters</div>
+        <div id="cluster-sidebar"></div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">Quick Actions</div>
+        <div class="filter-chip" onclick="exportLinks()"><span class="chip-icon">📤</span> Export JSON</div>
+        <div class="filter-chip" onclick="importLinks()"><span class="chip-icon">📥</span> Import</div>
+        <div class="filter-chip" onclick="clearAll()" style="color:var(--accent2)"><span class="chip-icon">🗑</span> Clear All</div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+      <!-- ADD BAR -->
+      <div class="add-bar">
+        <span>🔗</span>
+        <input type="text" id="quickAdd" placeholder="Paste any URL here and press Enter…" onkeydown="if(event.key==='Enter') quickAddLink()" />
+        <button class="btn btn-primary" onclick="quickAddLink()">Analyze & Save</button>
+      </div>
+
+      <!-- STATS -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-num" id="total-count">0</div>
+          <div class="stat-label">Total Links</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="cluster-count">0</div>
+          <div class="stat-label">AI Clusters</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="platform-count">0</div>
+          <div class="stat-label">Platforms</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="today-count">0</div>
+          <div class="stat-label">Added Today</div>
+        </div>
+      </div>
+
+      <!-- CLUSTER TABS -->
+      <div class="cluster-tabs" id="cluster-tabs">
+        <div class="cluster-tab active" onclick="setCluster('all')">All Topics</div>
+      </div>
+
+      <!-- TOOLBAR -->
+      <div class="toolbar">
+        <div class="search-bar" style="flex:1;margin-bottom:0">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Search by title, URL, or tag…" oninput="renderLinks()" />
+        </div>
+        <select class="sort-select" onchange="renderLinks()" id="sortSelect">
+          <option value="newest">Newest First</option>
+          <option value="oldest">Oldest First</option>
+          <option value="title">By Title A-Z</option>
+          <option value="platform">By Platform</option>
+        </select>
+        <div class="view-toggle">
+          <button class="view-btn active" onclick="setView('grid')" id="grid-btn">⊞</button>
+          <button class="view-btn" onclick="setView('list')" id="list-btn">☰</button>
+        </div>
+      </div>
+
+      <!-- LINKS GRID -->
+      <div class="links-grid" id="linksGrid"></div>
+    </main>
+  </div>
+
+  <!-- ADD MODAL -->
+  <div class="modal-overlay" id="addModal">
+    <div class="modal">
+      <h2>Add New Link</h2>
+      <div class="modal-field">
+        <label>URL *</label>
+        <input type="url" id="m-url" placeholder="https://…" oninput="autoDetectPlatform()" />
+      </div>
+      <div class="modal-field">
+        <label>Custom Title (optional — AI will generate if empty)</label>
+        <input type="text" id="m-title" placeholder="e.g. Great Python tutorial…" />
+      </div>
+      <div class="modal-field">
+        <label>Platform (auto-detected)</label>
+        <select id="m-platform">
+          <option value="youtube">YouTube</option>
+          <option value="instagram">Instagram</option>
+          <option value="twitter">Twitter/X</option>
+          <option value="linkedin">LinkedIn</option>
+          <option value="facebook">Facebook</option>
+          <option value="threads">Threads</option>
+          <option value="website">Website</option>
+          <option value="document">Document</option>
+          <option value="profile">Profile Page</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>Notes</label>
+        <textarea id="m-notes" placeholder="Why did you save this?"></textarea>
+      </div>
+      <div class="modal-field">
+        <label>Tags (comma separated)</label>
+        <input type="text" id="m-tags" placeholder="AI, learning, tools…" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveLink()">Analyze & Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT MODAL -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <h2>Edit Link</h2>
+      <input type="hidden" id="e-id" />
+      <div class="modal-field"><label>URL</label><input type="url" id="e-url" /></div>
+      <div class="modal-field"><label>Title</label><input type="text" id="e-title" /></div>
+      <div class="modal-field">
+        <label>Platform</label>
+        <select id="e-platform">
+          <option value="youtube">YouTube</option>
+          <option value="instagram">Instagram</option>
+          <option value="twitter">Twitter/X</option>
+          <option value="linkedin">LinkedIn</option>
+          <option value="facebook">Facebook</option>
+          <option value="threads">Threads</option>
+          <option value="website">Website</option>
+          <option value="document">Document</option>
+          <option value="profile">Profile Page</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="modal-field"><label>Notes</label><textarea id="e-notes"></textarea></div>
+      <div class="modal-field"><label>Tags</label><input type="text" id="e-tags" /></div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeEditModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="updateLink()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS PANEL -->
+  <div class="settings-panel" id="settingsPanel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2 style="margin:0">⚙ Settings</h2>
+      <button class="btn" onclick="closeSettings()">✕</button>
+    </div>
+
+    <div class="setting-group">
+      <div class="setting-group-label">Appearance</div>
+      <div class="setting-row">
+        <div><div class="setting-name">Dark Theme</div></div>
+        <div class="toggle on" id="toggle-dark" onclick="this.classList.toggle('on');toggleTheme()"></div>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-name">Compact Cards</div><div class="setting-desc">Denser layout</div></div>
+        <div class="toggle" id="toggle-compact" onclick="this.classList.toggle('on');toggleCompact()"></div>
+      </div>
+      <div style="padding:10px 0">
+        <div class="setting-name" style="margin-bottom:10px">Accent Color</div>
+        <div class="color-picker">
+          <div class="color-swatch active" style="background:#7c6dfa" onclick="setAccent('#7c6dfa',this)"></div>
+          <div class="color-swatch" style="background:#fa6d8e" onclick="setAccent('#fa6d8e',this)"></div>
+          <div class="color-swatch" style="background:#6dfabc" onclick="setAccent('#6dfabc',this)"></div>
+          <div class="color-swatch" style="background:#fac86d" onclick="setAccent('#fac86d',this)"></div>
+          <div class="color-swatch" style="background:#6db8fa" onclick="setAccent('#6db8fa',this)"></div>
+          <div class="color-swatch" style="background:#fa6d6d" onclick="setAccent('#fa6d6d',this)"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="setting-group">
+      <div class="setting-group-label">AI Features</div>
+      <div class="setting-row">
+        <div><div class="setting-name">Auto-Categorize</div><div class="setting-desc">AI assigns platform & cluster</div></div>
+        <div class="toggle on" id="toggle-ai"></div>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-name">Auto Title</div><div class="setting-desc">AI generates title from URL</div></div>
+        <div class="toggle on" id="toggle-autotitle"></div>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-name">Smart Clusters</div><div class="setting-desc">Group by content topic</div></div>
+        <div class="toggle on" id="toggle-clusters"></div>
+      </div>
+    </div>
+
+    <div class="setting-group">
+      <div class="setting-group-label">Data & Sync</div>
+      <div class="setting-row">
+        <div><div class="setting-name">MacroDroid API</div><div class="setting-desc">Receive links from device</div></div>
+        <div class="toggle on" id="toggle-macro"></div>
+      </div>
+      <div class="setting-row" style="display:block;padding:12px 0">
+        <div class="setting-name" style="margin-bottom:8px">Webhook Endpoint</div>
+        <input style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;outline:none" value="https://your-app.vercel.app/api/add-link" readonly onclick="this.select();navigator.clipboard.writeText(this.value)" />
+        <div style="font-size:10px;color:var(--muted);margin-top:4px">Click to copy</div>
+      </div>
+    </div>
+
+    <div class="setting-group">
+      <div class="setting-group-label">Export</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" onclick="exportLinks()">📤 JSON</button>
+        <button class="btn" onclick="exportCSV()">📊 CSV</button>
+        <button class="btn" onclick="exportMarkdown()">📝 Markdown</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast">
+    <span id="toast-icon">✅</span>
+    <span id="toast-msg">Link saved!</span>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

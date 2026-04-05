@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LinkVault — Smart Link Organizer</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: #2a2a3a;
+    --accent: #7c6dfa;
+    --accent2: #fa6d8e;
+    --accent3: #6dfabc;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --youtube: #ff4444;
+    --instagram: #e1306c;
+    --twitter: #1da1f2;
+    --linkedin: #0077b5;
+    --facebook: #1877f2;
+    --threads: #111;
+    --website: #6dfabc;
+    --document: #fac86d;
+    --profile: #fa6d8e;
+    --radius: 14px;
+    --shadow: 0 8px 40px rgba(0,0,0,0.5);
+  }
+  .theme-light {
+    --bg: #f0f0f8;
+    --surface: #ffffff;
+    --surface2: #e8e8f4;
+    --border: #d0d0e0;
+    --text: #1a1a2e;
+    --muted: #8080a0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* NOISE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0; opacity: 0.4;
+  }
+
+  /* HEADER */
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px;
+  }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px; font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+  }
+  .logo span { font-style: italic; font-family: 'Instrument Serif', serif; }
+  .header-actions { display: flex; align-items: center; gap: 12px; }
+  .btn {
+    padding: 8px 18px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--text); cursor: pointer;
+    font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500;
+    transition: all 0.2s; white-space: nowrap;
+  }
+  .btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #6a5ce8; }
+
+  /* LAYOUT */
+  .app { display: flex; height: calc(100vh - 64px); position: relative; z-index: 1; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 260px; flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto; padding: 20px 0;
+    transition: width 0.3s;
+  }
+  .sidebar.collapsed { width: 0; overflow: hidden; }
+  .sidebar-section { padding: 0 16px 24px; }
+  .sidebar-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 1.5px;
+    color: var(--muted); text-transform: uppercase;
+    padding: 0 8px 10px;
+  }
+  .filter-chip {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 10px;
+    cursor: pointer; transition: all 0.15s;
+    font-size: 13px; margin-bottom: 2px;
+  }
+  .filter-chip:hover { background: var(--surface2); }
+  .filter-chip.active { background: rgba(124,109,250,0.15); color: var(--accent); }
+  .filter-chip .chip-icon { font-size: 16px; width: 22px; text-align: center; }
+  .filter-chip .chip-count {
+    margin-left: auto; font-size: 11px; color: var(--muted);
+    background: var(--surface2); padding: 2px 8px; border-radius: 20px;
+  }
+  .filter-chip.active .chip-count { background: rgba(124,109,250,0.2); color: var(--accent); }
+
+  /* MAIN */
+  .main { flex: 1; overflow-y: auto; padding: 24px 28px; }
+
+  /* SEARCH BAR */
+  .search-bar {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 10px 16px; margin-bottom: 20px;
+    transition: border-color 0.2s;
+  }
+  .search-bar:focus-within { border-color: var(--accent); }
+  .search-bar input {
+    flex: 1; background: none; border: none; outline: none;
+    color: var(--text); font-family: 'DM Mono', monospace; font-size: 14px;
+  }
+  .search-bar input::placeholder { color: var(--muted); }
+  .search-icon { color: var(--muted); font-size: 16px; }
+
+  /* ADD LINK BAR */
+  .add-bar {
+    background: linear-gradient(135deg, rgba(124,109,250,0.1), rgba(250,109,142,0.07));
+    border: 1px solid rgba(124,109,250,0.25);
+    border-radius: var(--radius); padding: 16px 20px;
+    margin-bottom: 24px; display: flex; gap: 12px; align-items: center;
+  }
+  .add-bar input {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; color: var(--text);
+    font-family: 'DM Mono', monospace; font-size: 13px; outline: none;
+    transition: border-color 0.2s;
+  }
+  .add-bar input:focus { border-color: var(--accent); }
+
+  /* STATS ROW */
+  .stats-row {
+    display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 18px; flex: 1; min-width: 100px;
+    transition: transform 0.2s;
+  }
+  .stat-card:hover { transform: translateY(-2px); }
+  .stat-num {
+    font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* VIEW TOGGLE */
+  .toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px; gap: 12px; flex-wrap: wrap;
+  }
+  .sort-select {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 7px 12px; color: var(--text);
+    font-family: 'DM Mono', monospace; font-size: 12px; outline: none; cursor: pointer;
+  }
+  .view-toggle { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .view-btn { padding: 7px 12px; cursor: pointer; transition: background 0.15s; font-size: 14px; background: none; border: none; color: var(--muted); }
+  .view-btn.active { background: var(--accent); color: #fff; }
+
+  /* LINK CARDS GRID */
+  .links-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+  .links-grid.list-view { grid-template-columns: 1fr; }
+
+  /* LINK CARD */
+  .link-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+    transition: all 0.2s; position: relative; cursor: pointer;
+    animation: fadeIn 0.3s ease both;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .link-card:hover { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,109,250,0.1); transform: translateY(-2px); }
+  .link-card .card-top {
+    height: 4px; width: 100%;
+  }
+  .card-body { padding: 14px 16px; }
+  .card-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+  .platform-badge {
+    padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: 600;
+    letter-spacing: 0.5px; white-space: nowrap; flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .card-title {
+    font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+    line-height: 1.4; flex: 1; word-break: break-word;
+  }
+  .card-url {
+    font-size: 11px; color: var(--muted); word-break: break-all;
+    margin-bottom: 10px; line-height: 1.4;
+  }
+  .card-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .card-category {
+    font-size: 11px; padding: 3px 10px; border-radius: 20px;
+    background: var(--surface2); color: var(--muted); border: 1px solid var(--border);
+  }
+  .card-time { font-size: 11px; color: var(--muted); }
+  .card-actions {
+    display: flex; gap: 6px; opacity: 0; transition: opacity 0.2s;
+  }
+  .link-card:hover .card-actions { opacity: 1; }
+  .card-action-btn {
+    padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--text); cursor: pointer;
+    font-size: 11px; transition: all 0.15s;
+  }
+  .card-action-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* LIST VIEW CARD */
+  .links-grid.list-view .link-card { display: flex; align-items: center; }
+  .links-grid.list-view .card-top { width: 4px; height: auto; min-height: 72px; flex-shrink: 0; border-radius: 0; }
+  .links-grid.list-view .card-body { display: flex; align-items: center; gap: 14px; flex: 1; padding: 12px 16px; }
+  .links-grid.list-view .card-header { margin-bottom: 0; flex: 1; }
+  .links-grid.list-view .card-meta { flex-shrink: 0; }
+  .links-grid.list-view .card-url { display: none; }
+
+  /* EMPTY STATE */
+  .empty-state { text-align: center; padding: 80px 20px; color: var(--muted); }
+  .empty-state .empty-icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-state h3 { font-family: 'Syne', sans-serif; font-size: 20px; color: var(--text); margin-bottom: 8px; }
+  .empty-state p { font-size: 13px; line-height: 1.6; }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; width: 100%; max-width: 560px;
+    padding: 28px; box-shadow: var(--shadow);
+    transform: translateY(20px); transition: transform 0.3s;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal h2 { font-family: 'Syne', sans-serif; font-size: 20px; margin-bottom: 20px; font-weight: 700; }
+  .modal-field { margin-bottom: 16px; }
+  .modal-field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .modal-field input, .modal-field select, .modal-field textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px; color: var(--text);
+    font-family: 'DM Mono', monospace; font-size: 13px; outline: none;
+    transition: border-color 0.2s;
+  }
+  .modal-field input:focus, .modal-field select:focus, .modal-field textarea:focus { border-color: var(--accent); }
+  .modal-field textarea { resize: vertical; min-height: 80px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+  /* SETTINGS PANEL */
+  .settings-panel {
+    position: fixed; right: -380px; top: 64px; width: 360px;
+    background: var(--surface); border-left: 1px solid var(--border);
+    height: calc(100vh - 64px); z-index: 150; padding: 24px;
+    overflow-y: auto; transition: right 0.3s; box-shadow: -8px 0 40px rgba(0,0,0,0.3);
+  }
+  .settings-panel.open { right: 0; }
+  .settings-panel h2 { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+  .setting-group { margin-bottom: 24px; }
+  .setting-group-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+  .setting-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-name { font-size: 13px; }
+  .setting-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .toggle {
+    width: 40px; height: 22px; background: var(--border); border-radius: 20px;
+    position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0;
+  }
+  .toggle.on { background: var(--accent); }
+  .toggle::after {
+    content: ''; position: absolute; width: 16px; height: 16px;
+    background: #fff; border-radius: 50%; top: 3px; left: 3px;
+    transition: left 0.2s;
+  }
+  .toggle.on::after { left: 21px; }
+  .color-picker { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .color-swatch {
+    width: 28px; height: 28px; border-radius: 8px; cursor: pointer;
+    border: 2px solid transparent; transition: border-color 0.15s;
+  }
+  .color-swatch.active { border-color: var(--text); }
+
+  /* CLUSTER TABS */
+  .cluster-tabs {
+    display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px;
+    margin-bottom: 20px; scrollbar-width: none;
+  }
+  .cluster-tabs::-webkit-scrollbar { display: none; }
+  .cluster-tab {
+    padding: 7px 16px; border-radius: 20px; font-size: 12px; font-weight: 500;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--muted); cursor: pointer; white-space: nowrap; transition: all 0.15s;
+    font-family: 'DM Mono', monospace;
+  }
+  .cluster-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .cluster-tab:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+
+  /* API STATUS */
+  .api-status {
+    display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted);
+    padding: 6px 12px; background: var(--surface2); border-radius: 20px;
+  }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent3); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  /* LOADING */
+  .loading-shimmer {
+    background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%);
+    background-size: 200% 100%; animation: shimmer 1.5s infinite;
+    border-radius: 8px; height: 120px;
+  }
+  @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 300;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 20px; font-size: 13px;
+    box-shadow: var(--shadow); transform: translateY(80px); transition: transform 0.3s;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .toast.show { transform: translateY(0); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* PLATFORM COLORS */
+  .yt { background: rgba(255,68,68,0.15); color: var(--youtube); }
+  .ig { background: rgba(225,48,108,0.15); color: var(--instagram); }
+  .tw { background: rgba(29,161,242,0.15); color: var(--twitter); }
+  .li { background: rgba(0,119,181,0.15); color: var(--linkedin); }
+  .fb { background: rgba(24,119,242,0.15); color: var(--facebook); }
+  .th { background: rgba(200,200,200,0.1); color: #aaa; }
+  .ws { background: rgba(109,250,188,0.15); color: var(--website); }
+  .dc { background: rgba(250,200,109,0.15); color: var(--document); }
+  .pr { background: rgba(250,109,142,0.15); color: var(--profile); }
+  .ot { background: rgba(124,109,250,0.15); color: var(--accent); }
+
+  .bar-yt { background: var(--youtube); }
+  .bar-ig { background: var(--instagram); }
+  .bar-tw { background: var(--twitter); }
+  .bar-li { background: var(--linkedin); }
+  .bar-fb { background: var(--facebook); }
+  .bar-th { background: #aaa; }
+  .bar-ws { background: var(--website); }
+  .bar-dc { background: var(--document); }
+  .bar-pr { background: var(--profile); }
+  .bar-ot { background: var(--accent); }
+
+  @media (max-width: 768px) {
+    .sidebar { position: absolute; z-index: 50; height: 100%; }
+    header { padding: 0 16px; }
+    .main { padding: 16px; }
+    .links-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div style="display:flex;align-items:center;gap:20px">
+    <button class="btn" onclick="toggleSidebar()" style="padding:8px 10px;">☰</button>
+    <div class="logo">Link<span>Vault</span></div>
+  </div>
+  <div class="header-actions">
+    <div class="api-status"><div class="status-dot"></div> AI Active</div>
+    <button class="btn" onclick="toggleTheme()">🌙 Theme</button>
+    <button class="btn" onclick="openSettings()">⚙ Settings</button>
+    <button class="btn btn-primary" onclick="openAddModal()">+ Add Link</button>
+  </div>
+</header>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Platforms</div>
+      <div class="filter-chip active" onclick="setFilter('all')" id="f-all">
+        <span class="chip-icon">🌐</span> All Links
+        <span class="chip-count" id="count-all">0</span>
+      </div>
+      <div class="filter-chip" onclick="setFilter('youtube')" id="f-youtube">
+        <span class="chip-icon">▶</span> YouTube
+        <span class="chip-count" id="count-youtube">0</span>
+      </div>
+      <div class="filter-chip" onclick="setFilter('instagram')" id="f-instagram">
+        <span class="chip-icon">📷</span> Instagram
+        <span class="chip-count" id="count-instagram">0</span>
+      </div>
+      <div class="filter-chip" onclick="setFilter('twitter')" id="f-twitter">
+        <span class="chip-icon">𝕏</span> Twitter/X
+        <span class="chip-count" id="count-twitter">0</span>
+      </div>
+      <div class="filter-chip" onclick="setFilter('linkedin')" id="f-linkedin">
+        <span class="chip-icon">💼</span> LinkedIn
+        <span class="chip-count" id="count-linkedin">0</span>
+      </div>
+      <div class="filter-chip" onclick="setFilter('facebook')" id="f-facebook">
+        <span class="chip-icon">👥</span> Facebook
+        <span class="chip-count" id="count-facebook">0</span>
+      </div>
+      <div class="filter-chip" onclick="setFilter('threads')" id="f-threads">
+        <span class="chip-icon">🧵</span> Threads
+        <span class="chip-count" id="count-threads">0</span>
+      </div>
+      <div class="filter-chip" onclick="setFilter('website')" id="f-website">
+        <span class="chip-icon">🔗</span> Websites
+        <span class="chip-count" id="count-website">0</span>
+      </div>
+      <div class="filter-chip" onclick="setFilter('document')" id="f-document">
+        <span class="chip-icon">📄</span> Documents
+        <span class="chip-count" id="count-document">0</span>
+      </div>
+      <div class="filter-chip" onclick="setFilter('profile')" id="f-profile">
+        <span class="chip-icon">👤</span> Profiles
+        <span class="chip-count" id="count-profile">0</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Content Clusters</div>
+      <div id="cluster-sidebar"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Quick Actions</div>
+      <div class="filter-chip" onclick="exportLinks()"><span class="chip-icon">📤</span> Export JSON</div>
+      <div class="filter-chip" onclick="importLinks()"><span class="chip-icon">📥</span> Import</div>
+      <div class="filter-chip" onclick="clearAll()" style="color:var(--accent2)"><span class="chip-icon">🗑</span> Clear All</div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+    <!-- ADD BAR -->
+    <div class="add-bar">
+      <span>🔗</span>
+      <input type="text" id="quickAdd" placeholder="Paste any URL here and press Enter…" onkeydown="if(event.key==='Enter') quickAddLink()"/>
+      <button class="btn btn-primary" onclick="quickAddLink()">Analyze & Save</button>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num" id="total-count">0</div>
+        <div class="stat-label">Total Links</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="cluster-count">0</div>
+        <div class="stat-label">AI Clusters</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="platform-count">0</div>
+        <div class="stat-label">Platforms</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="today-count">0</div>
+        <div class="stat-label">Added Today</div>
+      </div>
+    </div>
+
+    <!-- CLUSTER TABS -->
+    <div class="cluster-tabs" id="cluster-tabs">
+      <div class="cluster-tab active" onclick="setCluster('all')">All Topics</div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="search-bar" style="flex:1;margin-bottom:0">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="Search by title, URL, or tag…" oninput="renderLinks()"/>
+      </div>
+      <select class="sort-select" onchange="renderLinks()" id="sortSelect">
+        <option value="newest">Newest First</option>
+        <option value="oldest">Oldest First</option>
+        <option value="title">By Title A-Z</option>
+        <option value="platform">By Platform</option>
+      </select>
+      <div class="view-toggle">
+        <button class="view-btn active" onclick="setView('grid')" id="grid-btn">⊞</button>
+        <button class="view-btn" onclick="setView('list')" id="list-btn">☰</button>
+      </div>
+    </div>
+
+    <!-- LINKS GRID -->
+    <div class="links-grid" id="linksGrid"></div>
+  </main>
+</div>
+
+<!-- ADD MODAL -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <h2>Add New Link</h2>
+    <div class="modal-field">
+      <label>URL *</label>
+      <input type="url" id="m-url" placeholder="https://…" oninput="autoDetectPlatform()"/>
+    </div>
+    <div class="modal-field">
+      <label>Custom Title (optional — AI will generate if empty)</label>
+      <input type="text" id="m-title" placeholder="e.g. Great Python tutorial…"/>
+    </div>
+    <div class="modal-field">
+      <label>Platform (auto-detected)</label>
+      <select id="m-platform">
+        <option value="youtube">YouTube</option>
+        <option value="instagram">Instagram</option>
+        <option value="twitter">Twitter/X</option>
+        <option value="linkedin">LinkedIn</option>
+        <option value="facebook">Facebook</option>
+        <option value="threads">Threads</option>
+        <option value="website">Website</option>
+        <option value="document">Document</option>
+        <option value="profile">Profile Page</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label>Notes</label>
+      <textarea id="m-notes" placeholder="Why did you save this?"></textarea>
+    </div>
+    <div class="modal-field">
+      <label>Tags (comma separated)</label>
+      <input type="text" id="m-tags" placeholder="AI, learning, tools…"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveLink()">Analyze & Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h2>Edit Link</h2>
+    <input type="hidden" id="e-id"/>
+    <div class="modal-field"><label>URL</label><input type="url" id="e-url"/></div>
+    <div class="modal-field"><label>Title</label><input type="text" id="e-title"/></div>
+    <div class="modal-field">
+      <label>Platform</label>
+      <select id="e-platform">
+        <option value="youtube">YouTube</option>
+        <option value="instagram">Instagram</option>
+        <option value="twitter">Twitter/X</option>
+        <option value="linkedin">LinkedIn</option>
+        <option value="facebook">Facebook</option>
+        <option value="threads">Threads</option>
+        <option value="website">Website</option>
+        <option value="document">Document</option>
+        <option value="profile">Profile Page</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="modal-field"><label>Notes</label><textarea id="e-notes"></textarea></div>
+    <div class="modal-field"><label>Tags</label><input type="text" id="e-tags"/></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="updateLink()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS PANEL -->
+<div class="settings-panel" id="settingsPanel">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <h2 style="margin:0">⚙ Settings</h2>
+    <button class="btn" onclick="closeSettings()">✕</button>
+  </div>
+
+  <div class="setting-group">
+    <div class="setting-group-label">Appearance</div>
+    <div class="setting-row">
+      <div><div class="setting-name">Dark Theme</div></div>
+      <div class="toggle on" id="toggle-dark" onclick="this.classList.toggle('on');toggleTheme()"></div>
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-name">Compact Cards</div><div class="setting-desc">Denser layout</div></div>
+      <div class="toggle" id="toggle-compact" onclick="this.classList.toggle('on');toggleCompact()"></div>
+    </div>
+    <div style="padding:10px 0">
+      <div class="setting-name" style="margin-bottom:10px">Accent Color</div>
+      <div class="color-picker">
+        <div class="color-swatch active" style="background:#7c6dfa" onclick="setAccent('#7c6dfa',this)"></div>
+        <div class="color-swatch" style="background:#fa6d8e" onclick="setAccent('#fa6d8e',this)"></div>
+        <div class="color-swatch" style="background:#6dfabc" onclick="setAccent('#6dfabc',this)"></div>
+        <div class="color-swatch" style="background:#fac86d" onclick="setAccent('#fac86d',this)"></div>
+        <div class="color-swatch" style="background:#6db8fa" onclick="setAccent('#6db8fa',this)"></div>
+        <div class="color-swatch" style="background:#fa6d6d" onclick="setAccent('#fa6d6d',this)"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="setting-group-label">AI Features</div>
+    <div class="setting-row">
+      <div><div class="setting-name">Auto-Categorize</div><div class="setting-desc">AI assigns platform & cluster</div></div>
+      <div class="toggle on" id="toggle-ai"></div>
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-name">Auto Title</div><div class="setting-desc">AI generates title from URL</div></div>
+      <div class="toggle on" id="toggle-autotitle"></div>
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-name">Smart Clusters</div><div class="setting-desc">Group by content topic</div></div>
+      <div class="toggle on" id="toggle-clusters"></div>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="setting-group-label">Data & Sync</div>
+    <div class="setting-row">
+      <div><div class="setting-name">MacroDroid API</div><div class="setting-desc">Receive links from device</div></div>
+      <div class="toggle on" id="toggle-macro"></div>
+    </div>
+    <div class="setting-row" style="display:block;padding:12px 0">
+      <div class="setting-name" style="margin-bottom:8px">Webhook Endpoint</div>
+      <input style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;outline:none" value="https://your-app.vercel.app/api/add-link" readonly onclick="this.select();navigator.clipboard.writeText(this.value)"/>
+      <div style="font-size:10px;color:var(--muted);margin-top:4px">Click to copy</div>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="setting-group-label">Export</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="exportLinks()">📤 JSON</button>
+      <button class="btn" onclick="exportCSV()">📊 CSV</button>
+      <button class="btn" onclick="exportMarkdown()">📝 Markdown</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span id="toast-icon">✅</span>
+  <span id="toast-msg">Link saved!</span>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let links = JSON.parse(localStorage.getItem('linkvault_links') || '[]');
+let currentFilter = 'all';
+let currentCluster = 'all';
+let currentView = 'grid';
+let isLight = false;
+
+const PLATFORM_MAP = {
+  youtube: { label: 'YouTube', css: 'yt', bar: 'bar-yt', icon: '▶', emoji: '▶' },
+  instagram: { label: 'Instagram', css: 'ig', bar: 'bar-ig', icon: '📷', emoji: '📷' },
+  twitter: { label: 'Twitter/X', css: 'tw', bar: 'bar-tw', icon: '𝕏', emoji: '𝕏' },
+  linkedin: { label: 'LinkedIn', css: 'li', bar: 'bar-li', icon: '💼', emoji: '💼' },
+  facebook: { label: 'Facebook', css: 'fb', bar: 'bar-fb', icon: '👥', emoji: '👥' },
+  threads: { label: 'Threads', css: 'th', bar: 'bar-th', icon: '🧵', emoji: '🧵' },
+  website: { label: 'Website', css: 'ws', bar: 'bar-ws', icon: '🔗', emoji: '🔗' },
+  document: { label: 'Document', css: 'dc', bar: 'bar-dc', icon: '📄', emoji: '📄' },
+  profile: { label: 'Profile', css: 'pr', bar: 'bar-pr', icon: '👤', emoji: '👤' },
+  other: { label: 'Other', css: 'ot', bar: 'bar-ot', icon: '🌐', emoji: '🌐' },
+};
+
+const BAR_COLORS = {
+  youtube: '#ff4444', instagram: '#e1306c', twitter: '#1da1f2',
+  linkedin: '#0077b5', facebook: '#1877f2', threads: '#aaa',
+  website: '#6dfabc', document: '#fac86d', profile: '#fa6d8e', other: '#7c6dfa'
+};
+
+// ============================================================
+// PLATFORM DETECTION
+// ============================================================
+function detectPlatform(url) {
+  url = url.toLowerCase();
+  if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube';
+  if (url.includes('instagram.com')) return url.includes('/p/') || url.includes('/reel/') ? 'instagram' : 'profile';
+  if (url.includes('twitter.com') || url.includes('x.com')) return 'twitter';
+  if (url.includes('linkedin.com')) return url.includes('/in/') ? 'profile' : 'linkedin';
+  if (url.includes('facebook.com') || url.includes('fb.com')) return 'facebook';
+  if (url.includes('threads.net')) return 'threads';
+  if (url.endsWith('.pdf') || url.includes('docs.google.com') || url.includes('drive.google.com') || url.includes('.doc')) return 'document';
+  return 'website';
+}
+
+function generateTitle(url, platform) {
+  try {
+    const u = new URL(url);
+    const path = u.pathname.replace(/\//g, ' ').replace(/-|_/g, ' ').trim();
+    const domain = u.hostname.replace('www.','');
+    if (path.length > 3) {
+      return (domain + ': ' + path.split(' ').slice(0,6).join(' ')).slice(0, 80);
+    }
+    return domain;
+  } catch { return url.slice(0,60); }
+}
+
+// ============================================================
+// AI CATEGORIZATION via Claude API
+// ============================================================
+async function analyzeWithAI(url, existingTitle) {
+  showToast('🤖 AI analyzing link…', '⏳');
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [{
+          role: "user",
+          content: `Analyze this URL and respond ONLY with a JSON object (no markdown, no backticks, no extra text):
+URL: ${url}
+Existing title hint: ${existingTitle || 'none'}
+
+Return JSON with these exact fields:
+{
+  "title": "descriptive human-readable title (max 80 chars)",
+  "cluster": "one of: Technology, Business, Education, Entertainment, News, Health, Science, Finance, Design, Sports, Food, Travel, Politics, Other",
+  "summary": "one sentence about what this link is about",
+  "tags": ["tag1", "tag2", "tag3"],
+  "isProfile": false
+}
+
+Base your title and cluster on the URL domain and path. Be specific and informative.`
+        }]
+      })
+    });
+    const data = await response.json();
+    const text = data.content?.map(c => c.text || '').join('') || '';
+    const clean = text.replace(/```json|```/g, '').trim();
+    return JSON.parse(clean);
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+}
+
+// ============================================================
+// LINK MANAGEMENT
+// ============================================================
+async function quickAddLink() {
+  const url = document.getElementById('quickAdd').value.trim();
+  if (!url || !url.startsWith('http')) { showToast('Please enter a valid URL', '⚠️'); return; }
+  document.getElementById('quickAdd').value = '';
+  await addLinkFromURL(url);
+}
+
+async function addLinkFromURL(url, customTitle = '', notes = '', tags = []) {
+  const platform = detectPlatform(url);
+  const fallbackTitle = customTitle || generateTitle(url, platform);
+
+  // Optimistic add
+  const tempId = Date.now().toString();
+  const tempLink = {
+    id: tempId, url, title: fallbackTitle, platform,
+    cluster: 'Analyzing…', summary: '', tags, notes,
+    timestamp: Date.now(), analyzing: true
+  };
+  links.unshift(tempLink);
+  save(); renderLinks(); updateCounts();
+
+  // AI analysis
+  const ai = await analyzeWithAI(url, customTitle);
+  const idx = links.findIndex(l => l.id === tempId);
+  if (idx !== -1 && ai) {
+    links[idx].title = customTitle || ai.title || fallbackTitle;
+    links[idx].cluster = ai.cluster || 'Other';
+    links[idx].summary = ai.summary || '';
+    links[idx].tags = [...(tags || []), ...(ai.tags || [])];
+    if (ai.isProfile) links[idx].platform = 'profile';
+    links[idx].analyzing = false;
+  } else if (idx !== -1) {
+    links[idx].cluster = 'Other';
+    links[idx].analyzing = false;
+  }
+
+  save(); renderLinks(); updateCounts(); updateClusters();
+  showToast('Link saved & categorized!', '✅');
+}
+
+function saveLink() {
+  const url = document.getElementById('m-url').value.trim();
+  if (!url) return;
+  const title = document.getElementById('m-title').value.trim();
+  const notes = document.getElementById('m-notes').value.trim();
+  const tags = document.getElementById('m-tags').value.split(',').map(t=>t.trim()).filter(Boolean);
+  closeModal();
+  addLinkFromURL(url, title, notes, tags);
+}
+
+function deleteLink(id) {
+  links = links.filter(l => l.id !== id);
+  save(); renderLinks(); updateCounts(); updateClusters();
+  showToast('Link deleted', '🗑');
+}
+
+function openEdit(id) {
+  const l = links.find(l=>l.id===id);
+  if (!l) return;
+  document.getElementById('e-id').value = id;
+  document.getElementById('e-url').value = l.url;
+  document.getElementById('e-title').value = l.title;
+  document.getElementById('e-platform').value = l.platform;
+  document.getElementById('e-notes').value = l.notes || '';
+  document.getElementById('e-tags').value = (l.tags||[]).join(', ');
+  document.getElementById('editModal').classList.add('open');
+}
+
+function updateLink() {
+  const id = document.getElementById('e-id').value;
+  const idx = links.findIndex(l=>l.id===id);
+  if (idx===-1) return;
+  links[idx].url = document.getElementById('e-url').value;
+  links[idx].title = document.getElementById('e-title').value;
+  links[idx].platform = document.getElementById('e-platform').value;
+  links[idx].notes = document.getElementById('e-notes').value;
+  links[idx].tags = document.getElementById('e-tags').value.split(',').map(t=>t.trim()).filter(Boolean);
+  save(); closeEditModal(); renderLinks(); updateCounts();
+  showToast('Link updated!', '✏️');
+}
+
+function clearAll() {
+  if (!confirm('Clear all links? This cannot be undone.')) return;
+  links = []; save(); renderLinks(); updateCounts(); updateClusters();
+  showToast('All links cleared', '🗑');
+}
+
+function save() { localStorage.setItem('linkvault_links', JSON.stringify(links)); }
+
+// ============================================================
+// RENDER
+// ============================================================
+function getFiltered() {
+  let result = links;
+  if (currentFilter !== 'all') result = result.filter(l => l.platform === currentFilter);
+  if (currentCluster !== 'all') result = result.filter(l => l.cluster === currentCluster);
+  const q = document.getElementById('searchInput')?.value?.toLowerCase() || '';
+  if (q) result = result.filter(l =>
+    l.title.toLowerCase().includes(q) ||
+    l.url.toLowerCase().includes(q) ||
+    (l.tags||[]).some(t=>t.toLowerCase().includes(q)) ||
+    (l.summary||'').toLowerCase().includes(q)
+  );
+  const sort = document.getElementById('sortSelect')?.value || 'newest';
+  if (sort === 'newest') result.sort((a,b)=>b.timestamp-a.timestamp);
+  else if (sort === 'oldest') result.sort((a,b)=>a.timestamp-b.timestamp);
+  else if (sort === 'title') result.sort((a,b)=>a.title.localeCompare(b.title));
+  else if (sort === 'platform') result.sort((a,b)=>a.platform.localeCompare(b.platform));
+  return result;
+}
+
+function renderLinks() {
+  const grid = document.getElementById('linksGrid');
+  const filtered = getFiltered();
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="empty-icon">🔗</div>
+      <h3>No links yet</h3>
+      <p>Paste a URL in the bar above or use MacroDroid<br/>to automatically capture copied links from your phone.</p>
+    </div>`;
+    return;
+  }
+  grid.innerHTML = filtered.map(l => renderCard(l)).join('');
+}
+
+function renderCard(l) {
+  const p = PLATFORM_MAP[l.platform] || PLATFORM_MAP.other;
+  const color = BAR_COLORS[l.platform] || '#7c6dfa';
+  const date = new Date(l.timestamp).toLocaleDateString('en-US', {month:'short',day:'numeric'});
+  const tags = (l.tags||[]).slice(0,3).map(t=>`<span style="background:var(--surface2);padding:2px 7px;border-radius:10px;font-size:10px;color:var(--muted)">${t}</span>`).join('');
+  const isListView = currentView === 'list';
+  
+  return `<div class="link-card" style="${l.analyzing ? 'opacity:0.7' : ''}">
+    <div class="card-top" style="background:${color}"></div>
+    <div class="card-body">
+      <div class="card-header">
+        <span class="platform-badge ${p.css}">${p.label}</span>
+        <div class="card-title">${l.analyzing ? '⏳ Analyzing…' : escapeHtml(l.title)}</div>
+      </div>
+      ${!isListView ? `<div class="card-url">${escapeHtml(l.url.slice(0,70))}${l.url.length>70?'…':''}</div>` : ''}
+      ${l.summary && !isListView ? `<div style="font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.5">${escapeHtml(l.summary)}</div>` : ''}
+      ${tags && !isListView ? `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">${tags}</div>` : ''}
+      <div class="card-meta">
+        <span class="card-category">📁 ${l.cluster || 'Uncategorized'}</span>
+        <span class="card-time">${date}</span>
+        <div class="card-actions">
+          <button class="card-action-btn" onclick="window.open('${l.url}','_blank')">↗ Open</button>
+          <button class="card-action-btn" onclick="openEdit('${l.id}')">✏</button>
+          <button class="card-action-btn" onclick="copyToClip('${l.url}')" title="Copy URL">⎘</button>
+          <button class="card-action-btn" onclick="deleteLink('${l.id}')" style="color:var(--accent2)">🗑</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ============================================================
+// FILTERS & CLUSTERS
+// ============================================================
+function setFilter(f) {
+  currentFilter = f;
+  currentCluster = 'all';
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  const el = document.getElementById('f-' + f);
+  if (el) el.classList.add('active');
+  renderLinks(); resetClusterTabs();
+}
+
+function setCluster(c) {
+  currentCluster = c;
+  document.querySelectorAll('.cluster-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  renderLinks();
+}
+
+function resetClusterTabs() {
+  document.querySelectorAll('.cluster-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('.cluster-tab')?.classList.add('active');
+}
+
+function updateCounts() {
+  const today = new Date().toDateString();
+  document.getElementById('total-count').textContent = links.length;
+  document.getElementById('today-count').textContent = links.filter(l => new Date(l.timestamp).toDateString() === today).length;
+
+  const platforms = new Set(links.map(l=>l.platform));
+  document.getElementById('platform-count').textContent = platforms.size;
+
+  Object.keys(PLATFORM_MAP).forEach(p => {
+    const el = document.getElementById('count-' + p);
+    if (el) el.textContent = links.filter(l=>l.platform===p).length;
+  });
+  const el = document.getElementById('count-all');
+  if (el) el.textContent = links.length;
+}
+
+function updateClusters() {
+  const clusters = {};
+  links.forEach(l => {
+    if (l.cluster && l.cluster !== 'Analyzing…') {
+      clusters[l.cluster] = (clusters[l.cluster]||0) + 1;
+    }
+  });
+
+  document.getElementById('cluster-count').textContent = Object.keys(clusters).length;
+
+  // Sidebar
+  const sb = document.getElementById('cluster-sidebar');
+  sb.innerHTML = Object.entries(clusters).sort((a,b)=>b[1]-a[1]).map(([name,cnt]) =>
+    `<div class="filter-chip" onclick="setClusterFromSidebar('${name}',this)">
+      <span class="chip-icon">🏷</span>${name}
+      <span class="chip-count">${cnt}</span>
+    </div>`
+  ).join('');
+
+  // Tab bar
+  const tabs = document.getElementById('cluster-tabs');
+  tabs.innerHTML = `<div class="cluster-tab active" onclick="setCluster('all')">All Topics</div>` +
+    Object.entries(clusters).sort((a,b)=>b[1]-a[1]).map(([name,cnt]) =>
+      `<div class="cluster-tab" onclick="setCluster('${name}')">${name} <span style="opacity:0.6;font-size:10px">${cnt}</span></div>`
+    ).join('');
+}
+
+function setClusterFromSidebar(name, el) {
+  currentCluster = name;
+  currentFilter = 'all';
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderLinks();
+}
+
+// ============================================================
+// MODAL / UI
+// ============================================================
+function openAddModal() { document.getElementById('addModal').classList.add('open'); }
+function closeModal() { document.getElementById('addModal').classList.remove('open'); }
+function closeEditModal() { document.getElementById('editModal').classList.remove('open'); }
+function openSettings() { document.getElementById('settingsPanel').classList.add('open'); }
+function closeSettings() { document.getElementById('settingsPanel').classList.remove('open'); }
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
+
+function autoDetectPlatform() {
+  const url = document.getElementById('m-url').value;
+  document.getElementById('m-platform').value = detectPlatform(url);
+}
+
+function setView(v) {
+  currentView = v;
+  const grid = document.getElementById('linksGrid');
+  grid.classList.toggle('list-view', v === 'list');
+  document.getElementById('grid-btn').classList.toggle('active', v === 'grid');
+  document.getElementById('list-btn').classList.toggle('active', v === 'list');
+  renderLinks();
+}
+
+function toggleTheme() {
+  isLight = !isLight;
+  document.body.classList.toggle('theme-light', isLight);
+  document.querySelector('header').style.background = isLight ? 'rgba(240,240,248,0.9)' : 'rgba(10,10,15,0.85)';
+}
+
+function toggleCompact() {
+  document.querySelectorAll('.link-card').forEach(c => c.style.fontSize = c.style.fontSize ? '' : '12px');
+}
+
+function setAccent(color, el) {
+  document.documentElement.style.setProperty('--accent', color);
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function copyToClip(text) {
+  navigator.clipboard.writeText(text).then(() => showToast('URL copied!', '⎘'));
+}
+
+let toastTimer;
+function showToast(msg, icon = '✅') {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  document.getElementById('toast-icon').textContent = icon;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ============================================================
+// EXPORT
+// ============================================================
+function exportLinks() {
+  const blob = new Blob([JSON.stringify(links, null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'linkvault-export.json'; a.click();
+  showToast('Exported as JSON!', '📤');
+}
+
+function exportCSV() {
+  const rows = [['Title','URL','Platform','Cluster','Tags','Date','Notes']];
+  links.forEach(l => rows.push([
+    `"${(l.title||'').replace(/"/g,'""')}"`,
+    l.url, l.platform, l.cluster||'',
+    `"${(l.tags||[]).join(', ')}"`,
+    new Date(l.timestamp).toLocaleDateString(),
+    `"${(l.notes||'').replace(/"/g,'""')}"`
+  ]));
+  const blob = new Blob([rows.map(r=>r.join(',')).join('\n')], {type:'text/csv'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'linkvault-export.csv'; a.click();
+  showToast('Exported as CSV!', '📊');
+}
+
+function exportMarkdown() {
+  const clusters = {};
+  links.forEach(l => {
+    const c = l.cluster || 'Other';
+    if (!clusters[c]) clusters[c] = [];
+    clusters[c].push(l);
+  });
+  let md = '# LinkVault Export\n\n';
+  Object.entries(clusters).forEach(([name, ls]) => {
+    md += `## ${name}\n\n`;
+    ls.forEach(l => { md += `- [${l.title}](${l.url})${l.summary ? ' — ' + l.summary : ''}\n`; });
+    md += '\n';
+  });
+  const blob = new Blob([md], {type:'text/markdown'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'linkvault-export.md'; a.click();
+  showToast('Exported as Markdown!', '📝');
+}
+
+function importLinks() {
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json';
+  inp.onchange = e => {
+    const fr = new FileReader();
+    fr.onload = ev => {
+      try {
+        const imported = JSON.parse(ev.target.result);
+        if (Array.isArray(imported)) {
+          links = [...links, ...imported];
+          save(); renderLinks(); updateCounts(); updateClusters();
+          showToast(`Imported ${imported.length} links!`, '📥');
+        }
+      } catch { showToast('Invalid JSON file', '⚠️'); }
+    };
+    fr.readAsText(e.target.files[0]);
+  };
+  inp.click();
+}
+
+// ============================================================
+// CLOSE ON OVERLAY CLICK
+// ============================================================
+document.getElementById('addModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
+document.getElementById('editModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeEditModal(); });
+
+// ============================================================
+// DEMO DATA
+// ============================================================
+function loadDemo() {
+  if (links.length > 0) return;
+  const demos = [
+    { url:'https://www.youtube.com/watch?v=dQw4w9WgXcQ', title:'AI in 2025: Complete Overview', platform:'youtube', cluster:'Technology', tags:['AI','overview'], summary:'A comprehensive overview of AI developments', timestamp: Date.now()-86400000*2 },
+    { url:'https://www.instagram.com/p/example/', title:'Beautiful UI Design Inspo', platform:'instagram', cluster:'Design', tags:['UI','design'], summary:'Stunning interface design inspiration', timestamp: Date.now()-86400000 },
+    { url:'https://twitter.com/sama/status/123', title:'Sam Altman on the future of AI agents', platform:'twitter', cluster:'Technology', tags:['AI','agents'], summary:'Sam Altman discusses AI agents', timestamp: Date.now()-3600000*5 },
+    { url:'https://linkedin.com/in/satyanadella', title:'Satya Nadella — Microsoft CEO', platform:'profile', cluster:'Business', tags:['CEO','Microsoft'], summary:'LinkedIn profile of Microsoft CEO', timestamp: Date.now()-3600000*3 },
+    { url:'https://docs.google.com/document/d/1abc', title:'Q4 Strategy Document', platform:'document', cluster:'Business', tags:['strategy','Q4'], summary:'Internal strategy planning document', timestamp: Date.now()-3600000 },
+    { url:'https://vercel.com/blog/next-js-15', title:'Next.js 15 Release Notes', platform:'website', cluster:'Technology', tags:['nextjs','webdev'], summary:'What\'s new in Next.js 15', timestamp: Date.now()-7200000 },
+    { url:'https://threads.net/@zuck', title:'Mark Zuckerberg on Threads', platform:'threads', cluster:'Technology', tags:['meta','social'], summary:'Zuckerberg\'s Threads account', timestamp: Date.now()-900000 },
+    { url:'https://facebook.com/groups/developers', title:'Developer Community Group', platform:'facebook', cluster:'Technology', tags:['community','dev'], summary:'Active developer community on Facebook', timestamp: Date.now()-1800000 },
+  ].map(d => ({...d, id: Math.random().toString(36).slice(2), analyzing: false}));
+  links = demos;
+  save();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+loadDemo();
+renderLinks();
+updateCounts();
+updateClusters();
+</script>
+</body>
+</html>
